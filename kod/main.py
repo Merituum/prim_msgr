@@ -7,13 +7,14 @@ from sqlalchemy.orm import sessionmaker
 Base = declarative_base()
 
 class User(Base):
-    __tablename__ = 'Users'
+    #XD TU BYL BŁAD XDD
+    __tablename__ = 'users'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     login = Column(String(50), nullable=False)
-    password = Column(String(100), nullable=False)
-    security_question = Column(String(255), nullable=False)
-    security_answer = Column(String(255), nullable=False)
+    haslo = Column(String(100), nullable=False)
+    PytaniePomocnicze = Column(String(255), nullable=False)
+    OdpowiedzNaPytanie = Column(String(255), nullable=False)
 
 class LoginWindow(QWidget):
     def __init__(self):
@@ -90,6 +91,7 @@ class LoginWindow(QWidget):
 
         # Ustawienie pola nowego hasła na tryb hasła
         self.txt_new_password.setEchoMode(QLineEdit.Password)
+        self.txt_security_answer.setEchoMode(QLineEdit.Password)
 
         # Dodanie pól rejestracji do głównego układu
         self.layout.addWidget(self.lbl_new_username)
@@ -120,7 +122,9 @@ class LoginWindow(QWidget):
         session = Session()
 
         # Dodanie użytkownika do bazy danych
-        user = User(Username=new_username, Password=new_password, SecurityQuestion=security_question, SecurityAnswer=security_answer)
+        # user = User(Username=new_username, Password=new_password, SecurityQuestion=security_question, SecurityAnswer=security_answer)
+        # user = User(Login=new_username, Haslo=new_password, PytaniePomocnicze=security_question, OdpowiedzNaPytanie=security_answer)
+        user = User(login=new_username, haslo=new_password, PytaniePomocnicze=security_question, OdpowiedzNaPytanie=security_answer)
         session.add(user)
         session.commit()
 
