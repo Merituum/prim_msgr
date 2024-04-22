@@ -4,4 +4,6 @@ CREATE TABLE Users (
     Haslo VARCHAR(100) NOT NULL,
     PytaniePomocnicze VARCHAR(255) NOT NULL,
     OdpowiedzNaPytanie VARCHAR(255) NOT NULL
+    PRIMARY KEY (ID)
+
 );
