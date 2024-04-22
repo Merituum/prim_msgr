@@ -63,10 +63,21 @@ class LoginWindow(QWidget):
         username = self.txt_username.text()
         password = self.txt_password.text()
 
-        # Tutaj można dodać logikę weryfikacji loginu i hasła
-        # Na potrzeby tego przykładu po prostu wyświetlimy dane logowania
-        print("Login - Username:", username)
-        print("Login - Password:", password)
+       
+        # Debugowanie
+        # print("Login - Username:", username)
+        # print("Login - Password:", password)
+        engine = create_engine('mysql+pymysql://root:@localhost/prim_msgr')
+        Base.metadata.create_all(engine)
+        Session = sessionmaker(bind=engine)
+        session = Session()
+
+        user = session.query(User).filter_by(login=username, haslo=password).first()
+        if user:
+            print("Zalogowano!")
+        else:
+            print("Zly login lub haslo")
+
 
     def show_registration_fields(self):
         # Funkcja wyświetlająca pola rejestracji po naciśnięciu przycisku rejestracji
@@ -129,7 +140,10 @@ class LoginWindow(QWidget):
         session.commit()
 
         print("User registered successfully!")
-
+    # def LoginToApp(self):
+    #     username = self.txt_username.text()
+    #     haslo = self.txt_password.text()
+        
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = LoginWindow()
