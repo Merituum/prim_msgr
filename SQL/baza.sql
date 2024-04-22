@@ -1,1 +1,7 @@
-SELECT * FROM messenger;
+CREATE TABLE Users (
+    ID INT AUTO_INCREMENT PRIMARY KEY,
+    Login VARCHAR(50) NOT NULL,
+    Haslo VARCHAR(100) NOT NULL,
+    PytaniePomocnicze VARCHAR(255) NOT NULL,
+    OdpowiedzNaPytanie VARCHAR(255) NOT NULL
+);
