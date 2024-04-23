@@ -165,10 +165,17 @@ class MainWindow(QWidget):
     def init_ui(self):
         self.lbl_welcome = QLabel("Witamy w prim_msgr!")
         self.layout = QVBoxLayout()
-        self.layout.addWidget(self.lbl_welcome)
+        self.layout.addWidget(self.lbl_welcome, alignment=Qt.AlignTop)
+        self.layout.addWidget(QPushButton("Wyloguj", clicked=self.logout))
         self.setLayout(self.layout)
         self.setWindowTitle("Dashboard - prim_msgr")
         self.setGeometry(200, 200, 300, 150)
+    def logout(self):
+        self.close()
+        self.login_window = LoginWindow()
+        self.login_window.show()
+    
+
         
 
 
