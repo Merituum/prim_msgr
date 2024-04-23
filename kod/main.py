@@ -1,4 +1,5 @@
 import sys
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
@@ -74,11 +75,21 @@ class LoginWindow(QWidget):
 
         user = session.query(User).filter_by(login=username, haslo=password).first()
         if user:
+            def open_main_window(self):
+            # Funkcja otwierająca główne okno aplikacji
+                self.open_main_window()
             print("Zalogowano!")
+            open_main_window(self)
+
+        
         else:
             print("Zly login lub haslo")
 
-
+    def open_main_window(self):
+        #tworzenie tego okna do dashboardu
+        self.main_window = MainWindow()
+        self.main_window.show()
+        self.close()
     def show_registration_fields(self):
         # Funkcja wyświetlająca pola rejestracji po naciśnięciu przycisku rejestracji
         # Ukrycie etykiet i pól logowania
@@ -117,7 +128,7 @@ class LoginWindow(QWidget):
 
         # Połączenie przycisku z funkcją obsługującą rejestrację
         self.btn_register_confirm.clicked.connect(self.register)
-
+        #TODO - FIX NA WPISYWANIE DO BAZY PUSTYCH PÓL
     def register(self):
         # Funkcja obsługująca rejestrację
         new_username = self.txt_new_username.text()
@@ -140,9 +151,27 @@ class LoginWindow(QWidget):
         session.commit()
 
         print("User registered successfully!")
+    
     # def LoginToApp(self):
     #     username = self.txt_username.text()
     #     haslo = self.txt_password.text()
+
+
+#KLASA DO DASHBOARDU
+class MainWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.init_ui()
+    def init_ui(self):
+        self.lbl_welcome = QLabel("Witamy w prim_msgr!")
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.lbl_welcome)
+        self.setLayout(self.layout)
+        self.setWindowTitle("Dashboard - prim_msgr")
+        self.setGeometry(200, 200, 300, 150)
+        
+
+
         
 if __name__ == '__main__':
     app = QApplication(sys.argv)
