@@ -11,5 +11,5 @@ CREATE TABLE Wiadomosci (
     ID INT AUTO_INCREMENT PRIMARY KEY,
     ID_wysylajacego INT NOT NULL,
     ID_odbierajacego INT NOT NULL
-
+-- test
 );
