@@ -1,9 +1,7 @@
-import sys
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout, QTextEdit, QListWidget
-from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, relationship
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QTextEdit, QLineEdit, QPushButton
 
 # Połączenie z bazą danych
 engine = create_engine('mysql+pymysql://root:@localhost/prim_msgr')
@@ -11,17 +9,141 @@ Base = declarative_base()
 
 # Definicja modelu użytkownika
 class User(Base):
-    __tablename__ = 'users'
+    __tablename__ = 'Users'
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    login = Column(String(50), nullable=False)
-    haslo = Column(String(100), nullable=False)
+    ID = Column(Integer, primary_key=True, autoincrement=True)
+    Login = Column(String(50), nullable=False)
+    Haslo = Column(String(100), nullable=False)
     PytaniePomocnicze = Column(String(255), nullable=False)
     OdpowiedzNaPytanie = Column(String(255), nullable=False)
+
+    sent_messages = relationship('Message', back_populates='sender', foreign_keys='Message.ID_wysylajacego')
+    received_messages = relationship('Message', back_populates='receiver', foreign_keys='Message.ID_odbierajacego')
+
+# Definicja modelu wiadomości
+class Message(Base):
+    __tablename__ = 'Wiadomosci'
+
+    ID = Column(Integer, primary_key=True, autoincrement=True)
+    ID_wysylajacego = Column(Integer, ForeignKey('Users.ID'), nullable=False)
+    ID_odbierajacego = Column(Integer, ForeignKey('Users.ID'), nullable=False)
+    content = Column(String(255), nullable=False)
+
+    sender = relationship('User', foreign_keys=[ID_wysylajacego], back_populates='sent_messages')
+    receiver = relationship('User', foreign_keys=[ID_odbierajacego], back_populates='received_messages')
 
 # Inicjalizacja bazy danych
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
+
+class MessengerInterface(QWidget):
+    def __init__(self, logged_in_user):
+        super().__init__()
+        self.logged_in_user = logged_in_user
+        self.init_ui()
+
+    def init_ui(self):
+        self.lista_users = QListWidget()
+        self.txt_message = QTextEdit()
+        self.txt_input = QLineEdit()
+        self.selected_user = None
+
+        main_layout = QHBoxLayout()
+
+        # Układ dla listy użytkowników
+        users_layout = QVBoxLayout()
+        users_layout.addWidget(QLabel("Lista użytkowników"))
+        users_layout.addWidget(self.lista_users)
+
+        # Układ dla pola wiadomości
+        messages_layout = QVBoxLayout()
+        messages_layout.addWidget(QLabel("Wiadomości"))
+        messages_layout.addWidget(self.txt_message)
+
+        # Układ dla pola wpisywania wiadomości
+        input_layout = QVBoxLayout()
+        input_layout.addWidget(self.txt_input)
+        input_layout.addWidget(QPushButton("Wyślij", clicked=self.send_message))
+
+        main_layout.addLayout(users_layout)
+        main_layout.addLayout(messages_layout)
+        main_layout.addLayout(input_layout)
+
+        self.setLayout(main_layout)
+
+        self.setWindowTitle("Messenger - prim_msgr")
+        self.setGeometry(200, 200, 400, 400)
+
+        # Wczytaj użytkowników z bazy danych i dodaj ich do listy
+        self.load_users_from_database()
+
+        # Połącz zdarzenie zaznaczenia użytkownika z funkcją obsługi
+        self.lista_users.itemClicked.connect(self.select_user)
+
+    def load_users_from_database(self):
+        session = Session()
+        users = session.query(User).filter(User.Login != self.logged_in_user.Login).all()
+        for user in users:
+            self.lista_users.addItem(user.Login)
+
+    def select_user(self, item):
+        # Zapisz zaznaczonego użytkownika
+        self.selected_user = item.text()
+
+    def send_message(self):
+       # Sprawdź, czy użytkownik został wybrany
+        if self.selected_user:
+        # Pobierz treść wiadomości
+            message_content = self.txt_input.text()
+            if message_content:
+                session = Session()
+                receiver = session.query(User).filter_by(Login=self.selected_user).first()
+
+                if receiver:
+                    message = Message(ID_wysylajacego=self.logged_in_user.ID, ID_odbierajacego=receiver.ID, content=message_content)
+                    session.add(message)
+                
+                # Wydrukowanie zapytania SQL
+                    print(f"SQL: {session.query(Message).filter_by(ID_wysylajacego=self.logged_in_user.ID, ID_odbierajacego=receiver.ID, content=message_content).statement}")
+                
+                    session.commit()
+                    print(f"Wysłano wiadomość do użytkownika {self.selected_user}: {message_content}")
+                # Wyczyść pole wpisywania wiadomości
+                    self.txt_input.clear()
+                else:
+                    print("Nie znaleziono odbiorcy.")
+            else:
+                print("Nie można wysłać pustej wiadomości.")
+        else:
+            print("Proszę wybrać użytkownika, aby wysłać wiadomość.")
+
+class MainWindow(QWidget):
+    def __init__(self, logged_in_user):
+        super().__init__()
+        self.logged_in_user = logged_in_user
+        self.init_ui()
+
+    def init_ui(self):
+        self.lbl_welcome = QLabel(f"Witamy w prim_msgr, {self.logged_in_user.Login}!")
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.lbl_welcome)
+        self.layout.addWidget(QPushButton("Wyloguj", clicked=self.logout))
+
+        # Utworzenie interfejsu Messenger
+        self.messenger_interface = MessengerInterface(self.logged_in_user)
+
+        # Ustawienie układu dla głównego okna
+        main_layout = QHBoxLayout()
+        main_layout.addWidget(self.messenger_interface)
+        self.setLayout(main_layout)
+
+        self.setWindowTitle("Dashboard - prim_msgr")
+        self.setGeometry(200, 200, 600, 400)
+
+    def logout(self):
+        self.close()
+        self.login_window = LoginWindow()
+        self.login_window.show()
 
 class LoginWindow(QWidget):
     def __init__(self):
@@ -70,15 +192,15 @@ class LoginWindow(QWidget):
         password = self.txt_password.text()
 
         session = Session()
-        user = session.query(User).filter_by(login=username, haslo=password).first()
+        user = session.query(User).filter_by(Login=username, Haslo=password).first()
         if user:
-            self.open_main_window()
+            self.open_main_window(user)
             print("Zalogowano!")
         else:
             print("Zły login lub hasło")
 
-    def open_main_window(self):
-        self.main_window = MainWindow()
+    def open_main_window(self, user):
+        self.main_window = MainWindow(user)
         self.main_window.show()
         self.close()
 
@@ -129,80 +251,14 @@ class LoginWindow(QWidget):
         security_answer = self.txt_security_answer.text()
 
         session = Session()
-        user = User(login=new_username, haslo=new_password, PytaniePomocnicze=security_question, OdpowiedzNaPytanie=security_answer)
+        user = User(Login=new_username, Haslo=new_password, PytaniePomocnicze=security_question, OdpowiedzNaPytanie=security_answer)
         session.add(user)
         session.commit()
 
         print("User registered successfully!")
 
-
-class MainWindow(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.init_ui()
-
-    def init_ui(self):
-        self.lbl_welcome = QLabel("Witamy w prim_msgr!")
-        self.layout = QVBoxLayout()
-        self.layout.addWidget(self.lbl_welcome, alignment=Qt.AlignTop)
-        self.layout.addWidget(QPushButton("Wyloguj", clicked=self.logout))
-
-        # Utworzenie interfejsu Messenger
-        self.messenger_interface = MessengerInterface()
-
-        # Ustawienie układu dla głównego okna
-        main_layout = QHBoxLayout()
-        main_layout.addWidget(self.messenger_interface)
-        self.setLayout(main_layout)
-
-        self.setWindowTitle("Dashboard - prim_msgr")
-        self.setGeometry(200, 200, 600, 400)
-
-    def logout(self):
-        self.close()
-        self.login_window = LoginWindow()
-        self.login_window.show()
-
-
-class MessengerInterface(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.init_ui()
-
-    def init_ui(self):
-        self.lista_users = QListWidget()
-        self.txt_message = QTextEdit()
-        self.txt_input = QLineEdit()
-
-        main_layout = QHBoxLayout()
-
-        # Układ dla listy użytkowników
-        users_layout = QVBoxLayout()
-        users_layout.addWidget(QLabel("Lista użytkowników"))
-        users_layout.addWidget(self.lista_users)
-
-        # Układ dla pola wiadomości
-        messages_layout = QVBoxLayout()
-        messages_layout.addWidget(QLabel("Wiadomości"))
-        messages_layout.addWidget(self.txt_message)
-
-        # Układ dla pola wpisywania wiadomości
-        input_layout = QVBoxLayout()
-        input_layout.addWidget(self.txt_input)
-        input_layout.addWidget(QPushButton("Send"))
-
-        main_layout.addLayout(users_layout)
-        main_layout.addLayout(messages_layout)
-        main_layout.addLayout(input_layout)
-
-        self.setLayout(main_layout)
-
-        self.setWindowTitle("Messenger - prim_msgr")
-        self.setGeometry(200, 200, 400, 400)
-
-
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
+    app = QApplication([])
     window = LoginWindow()
     window.show()
-    sys.exit(app.exec_())
+    app.exec_()
