@@ -2,7 +2,8 @@ from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QTextEdit, QLineEdit, QPushButton
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QObject, pyqtSignal
+
 # Połączenie z bazą danych
 engine = create_engine('mysql+pymysql://root:@localhost/prim_msgr')
 Base = declarative_base()
@@ -37,16 +38,13 @@ Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
 
 class MessengerInterface(QWidget):
+    messages_changed = pyqtSignal()
+
     def __init__(self, logged_in_user):
         super().__init__()
         self.logged_in_user = logged_in_user
         self.init_ui()
-        # self.logged_in_user = logged_in_user
-        self.refresh_timer = QTimer(self)
-        self.refresh_timer.timeout.connect(self.load_messages)
-        #opoznienie odczytywania z bazy wiadomosci - 250ms
-        self.refresh_timer.start(250)
-
+        self.messages_changed.connect(self.load_messages)
 
     def init_ui(self):
         self.lista_users = QListWidget()
@@ -78,7 +76,7 @@ class MessengerInterface(QWidget):
         self.setLayout(main_layout)
 
         self.setWindowTitle("Messenger - prim_msgr")
-        self.setGeometry(200, 200, 400, 400)
+        self.setGeometry(200, 200, 900, 400)
 
         # Wczytaj użytkowników z bazy danych i dodaj ich do listy
         self.load_users_from_database()
@@ -95,11 +93,11 @@ class MessengerInterface(QWidget):
     def select_user(self, item):
         # Zapisz zaznaczonego użytkownika
         self.selected_user = item.text()
-        self.load_messages()
+        self.messages_changed.emit()
 
     def load_messages(self):
         if self.selected_user:
-            session=Session()
+            session = Session()
             receiver = session.query(User).filter_by(Login=self.selected_user).first()
             if receiver:
                 messages = session.query(Message).filter_by(ID_wysylajacego=self.logged_in_user.ID, ID_odbierajacego=receiver.ID).all()
@@ -111,13 +109,10 @@ class MessengerInterface(QWidget):
         else:
             print("Proszę wybrać użytkownika, aby zobaczyć wiadomości.")
 
-
-
-
     def send_message(self):
-       # Sprawdź, czy użytkownik został wybrany
+        # Sprawdź, czy użytkownik został wybrany
         if self.selected_user:
-        # Pobierz treść wiadomości
+            # Pobierz treść wiadomości
             message_content = self.txt_input.text()
             if message_content:
                 session = Session()
@@ -126,14 +121,15 @@ class MessengerInterface(QWidget):
                 if receiver:
                     message = Message(ID_wysylajacego=self.logged_in_user.ID, ID_odbierajacego=receiver.ID, content=message_content)
                     session.add(message)
-                
-                # Wydrukowanie zapytania SQL
+
+                    # Wydrukowanie zapytania SQL
                     print(f"SQL: {session.query(Message).filter_by(ID_wysylajacego=self.logged_in_user.ID, ID_odbierajacego=receiver.ID, content=message_content).statement}")
-                
+
                     session.commit()
                     print(f"Wysłano wiadomość do użytkownika {self.selected_user}: {message_content}")
-                # Wyczyść pole wpisywania wiadomości
+                    # Wyczyść pole wpisywania wiadomości
                     self.txt_input.clear()
+                    self.messages_changed.emit()
                 else:
                     print("Nie znaleziono odbiorcy.")
             else:
