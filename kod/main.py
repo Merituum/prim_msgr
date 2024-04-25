@@ -2,7 +2,7 @@ from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QTextEdit, QLineEdit, QPushButton
-
+from PyQt5.QtCore import QTimer
 # Połączenie z bazą danych
 engine = create_engine('mysql+pymysql://root:@localhost/prim_msgr')
 Base = declarative_base()
@@ -41,6 +41,12 @@ class MessengerInterface(QWidget):
         super().__init__()
         self.logged_in_user = logged_in_user
         self.init_ui()
+        # self.logged_in_user = logged_in_user
+        self.refresh_timer = QTimer(self)
+        self.refresh_timer.timeout.connect(self.load_messages)
+        #opoznienie odczytywania z bazy wiadomosci - 250ms
+        self.refresh_timer.start(250)
+
 
     def init_ui(self):
         self.lista_users = QListWidget()
@@ -89,6 +95,24 @@ class MessengerInterface(QWidget):
     def select_user(self, item):
         # Zapisz zaznaczonego użytkownika
         self.selected_user = item.text()
+        self.load_messages()
+
+    def load_messages(self):
+        if self.selected_user:
+            session=Session()
+            receiver = session.query(User).filter_by(Login=self.selected_user).first()
+            if receiver:
+                messages = session.query(Message).filter_by(ID_wysylajacego=self.logged_in_user.ID, ID_odbierajacego=receiver.ID).all()
+                messages += session.query(Message).filter_by(ID_wysylajacego=receiver.ID, ID_odbierajacego=self.logged_in_user.ID).all()
+                messages.sort(key=lambda x: x.ID)
+                self.txt_message.setPlainText("\n".join([f"{message.sender.Login}: {message.content}" for message in messages]))
+            else:
+                print("Nie znaleziono odbiorcy.")
+        else:
+            print("Proszę wybrać użytkownika, aby zobaczyć wiadomości.")
+
+
+
 
     def send_message(self):
        # Sprawdź, czy użytkownik został wybrany
