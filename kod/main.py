@@ -3,6 +3,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from PyQt5.QtWidgets import QApplication,QSizePolicy, QWidget,QLineEdit, QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QTextEdit, QLineEdit, QPushButton
 from PyQt5.QtCore import QObject, pyqtSignal
+import qtmodern.styles
+# qtmodern.styles.dark(app)
 
 # Połączenie z bazą danych
 engine = create_engine('mysql+pymysql://root:@localhost/prim_msgr')
@@ -172,7 +174,7 @@ class MainWindow(QWidget):
         self.setLayout(main_layout)
 
         self.setWindowTitle("Dashboard - prim_msgr")
-        self.setGeometry(200, 200, 1600, 900)
+        self.setGeometry(200, 200, 1600, 800)
 
     
 
@@ -182,6 +184,7 @@ class LoginWindow(QWidget):
         self.init_ui()
 
     def init_ui(self):
+        qtmodern.styles.dark(app)
         # Tworzenie etykiet, pól tekstowych, przycisków logowania i rejestracji
         self.lbl_username = QLabel("Login:")
         self.lbl_password = QLabel("Hasło:")
@@ -343,6 +346,7 @@ class ForgotPassword(QWidget):
             self.lbl_security_question.setText("Incorrect answer.")
 
 if __name__ == '__main__':
+    # qtmodern.styles.dark(app)
     app = QApplication([])
     window = LoginWindow()
     window.show()
