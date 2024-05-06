@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QTextEdit, QLineEdit, QPushButton
+from PyQt5.QtWidgets import QApplication,QSizePolicy, QWidget,QLineEdit, QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QTextEdit, QLineEdit, QPushButton
 from PyQt5.QtCore import QObject, pyqtSignal
 
 # Połączenie z bazą danych
@@ -56,17 +56,25 @@ class MessengerInterface(QWidget):
 
         # Układ dla listy użytkowników
         users_layout = QVBoxLayout()
+        users_layout.addWidget(QLabel("Zalogowano jako " + self.logged_in_user.Login))
         users_layout.addWidget(QLabel("Lista użytkowników"))
         users_layout.addWidget(self.lista_users)
+        self.lista_users.setMaximumWidth(150)  # Ustaw maksymalną szerokość listy użytkowników
 
         # Układ dla pola wiadomości
         messages_layout = QVBoxLayout()
+        messages_layout.addWidget(QPushButton("Wyloguj",clicked=self.logout))
         messages_layout.addWidget(QLabel("Wiadomości"))
         messages_layout.addWidget(self.txt_message)
+        self.txt_message.setMaximumWidth(400)  # Ustaw maksymalną szerokość pola wiadomości
 
         # Układ dla pola wpisywania wiadomości
         input_layout = QVBoxLayout()
         input_layout.addWidget(self.txt_input)
+        self.txt_input.setPlaceholderText("Wpisz wiadomość...")
+        self.txt_input.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.txt_input.setMinimumHeight(720)  # Ustaw maksymalną szerokość pola do wpisywania wiadomości
+        self.txt_input.setMinimumWidth(200)  # Ustaw minimalną szerokość pola do wpisywania wiadomości
         input_layout.addWidget(QPushButton("Wyślij", clicked=self.send_message))
 
         main_layout.addLayout(users_layout)
@@ -83,7 +91,13 @@ class MessengerInterface(QWidget):
 
         # Połącz zdarzenie zaznaczenia użytkownika z funkcją obsługi
         self.lista_users.itemClicked.connect(self.select_user)
-
+    def logout(self):
+        # self.main_window.close()
+        self.close()
+        self.login_window = LoginWindow()
+        self.login_window.show()
+        # self.main_window=MainWindow()
+        # self.main_window.hide()
     def load_users_from_database(self):
         session = Session()
         users = session.query(User).filter(User.Login != self.logged_in_user.Login).all()
@@ -142,12 +156,12 @@ class MainWindow(QWidget):
         super().__init__()
         self.logged_in_user = logged_in_user
         self.init_ui()
-
+    
     def init_ui(self):
         self.lbl_welcome = QLabel(f"Witamy w prim_msgr, {self.logged_in_user.Login}!")
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.lbl_welcome)
-        self.layout.addWidget(QPushButton("Wyloguj", clicked=self.logout))
+        # self.layout.addWidget(QPushButton("Wyloguj", clicked=self.logout))
 
         # Utworzenie interfejsu Messenger
         self.messenger_interface = MessengerInterface(self.logged_in_user)
@@ -158,12 +172,9 @@ class MainWindow(QWidget):
         self.setLayout(main_layout)
 
         self.setWindowTitle("Dashboard - prim_msgr")
-        self.setGeometry(200, 200, 600, 400)
+        self.setGeometry(200, 200, 1600, 900)
 
-    def logout(self):
-        self.close()
-        self.login_window = LoginWindow()
-        self.login_window.show()
+    
 
 class LoginWindow(QWidget):
     def __init__(self):
@@ -172,12 +183,13 @@ class LoginWindow(QWidget):
 
     def init_ui(self):
         # Tworzenie etykiet, pól tekstowych, przycisków logowania i rejestracji
-        self.lbl_username = QLabel("Username:")
-        self.lbl_password = QLabel("Password:")
+        self.lbl_username = QLabel("Login:")
+        self.lbl_password = QLabel("Hasło:")
         self.txt_username = QLineEdit()
         self.txt_password = QLineEdit()
         self.btn_login = QPushButton("Login")
         self.btn_register = QPushButton("Register")
+        self.btn_forgot_password = QPushButton("Zapomniałeś hasła?")
 
         # Ustawienie pola hasła na tryb hasła
         self.txt_password.setEchoMode(QLineEdit.Password)
@@ -186,6 +198,7 @@ class LoginWindow(QWidget):
         button_layout = QHBoxLayout()
         button_layout.addWidget(self.btn_login)
         button_layout.addWidget(self.btn_register)
+        button_layout.addWidget(self.btn_forgot_password)
 
         # Ustawienie układu dla etykiet, pól tekstowych i przycisków
         self.layout = QVBoxLayout()
@@ -201,11 +214,14 @@ class LoginWindow(QWidget):
         # Połączenie przycisków z funkcjami obsługującymi logowanie i rejestrację
         self.btn_login.clicked.connect(self.login)
         self.btn_register.clicked.connect(self.show_registration_fields)
+        self.btn_forgot_password.clicked.connect(self.show_forgot_password_fields)
 
         # Ustawienia okna
         self.setWindowTitle("Login Window")
         self.setGeometry(200, 200, 300, 150)
-
+    def show_forgot_password_fields(self):
+        self.forgot_password_window = ForgotPassword()
+        self.forgot_password_window.show()
     def login(self):
         # Funkcja obsługująca logowanie
         username = self.txt_username.text()
@@ -222,7 +238,10 @@ class LoginWindow(QWidget):
     def open_main_window(self, user):
         self.main_window = MainWindow(user)
         self.main_window.show()
+        #PRZEKAZANA REFERENCJA DO OKNA LOGOWANIA
+        # self.main_window.login_window=self
         self.close()
+
 
     def show_registration_fields(self):
         # Funkcja wyświetlająca pola rejestracji po naciśnięciu przycisku rejestracji
@@ -235,15 +254,15 @@ class LoginWindow(QWidget):
         self.btn_register.hide()
 
         # Stworzenie nowych pól rejestracji
-        self.lbl_new_username = QLabel("New Username:")
-        self.lbl_new_password = QLabel("New Password:")
-        self.lbl_security_question = QLabel("Security Question:")
-        self.lbl_security_answer = QLabel("Security Answer:")
+        self.lbl_new_username = QLabel("Login:")
+        self.lbl_new_password = QLabel("Hasło:")
+        self.lbl_security_question = QLabel("Pytanie awaryjne:")
+        self.lbl_security_answer = QLabel("Odpowiedź na pytanie:")
         self.txt_new_username = QLineEdit()
         self.txt_new_password = QLineEdit()
         self.txt_security_question = QLineEdit()
         self.txt_security_answer = QLineEdit()
-        self.btn_register_confirm = QPushButton("Register")
+        self.btn_register_confirm = QPushButton("Zarejestruj się")
 
         # Ustawienie pola nowego hasła na tryb hasła
         self.txt_new_password.setEchoMode(QLineEdit.Password)
@@ -263,6 +282,7 @@ class LoginWindow(QWidget):
         # Połączenie przycisku z funkcją obsługującą rejestrację
         self.btn_register_confirm.clicked.connect(self.register)
 
+
     def register(self):
         # Funkcja obsługująca rejestrację
         new_username = self.txt_new_username.text()
@@ -274,8 +294,53 @@ class LoginWindow(QWidget):
         user = User(Login=new_username, Haslo=new_password, PytaniePomocnicze=security_question, OdpowiedzNaPytanie=security_answer)
         session.add(user)
         session.commit()
-
+        self.close()
+        self.open_main_window(user)
         print("User registered successfully!")
+class ForgotPassword(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.init_ui()
+
+    def init_ui(self):
+        self.lbl_username = QLabel("Login")
+        self.txt_username = QLineEdit()
+        self.btn_confirm = QPushButton("Potwierdź")
+        self.lbl_security_question = QLabel()
+        self.txt_security_answer = QLineEdit()
+        self.btn_confirm_answer = QPushButton("Potwierdź odpowiedź")
+
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.lbl_username)
+        self.layout.addWidget(self.txt_username)
+        self.layout.addWidget(self.btn_confirm)
+        self.layout.addWidget(self.lbl_security_question)
+        self.layout.addWidget(self.txt_security_answer)
+        self.layout.addWidget(self.btn_confirm_answer)
+
+        self.setLayout(self.layout)
+
+        self.btn_confirm.clicked.connect(self.confirm_username)
+        self.btn_confirm_answer.clicked.connect(self.confirm_answer)
+
+    def confirm_username(self):
+        username = self.txt_username.text()
+        session = Session()
+        user = session.query(User).filter_by(Login=username).first()
+        if user:
+            self.lbl_security_question.setText(user.PytaniePomocnicze)
+        else:
+            self.lbl_security_question.setText("User not found.")
+
+    def confirm_answer(self):
+        username = self.txt_username.text()
+        answer = self.txt_security_answer.text()
+        session = Session()
+        user = session.query(User).filter_by(Login=username).first()
+        if user and user.OdpowiedzNaPytanie == answer:
+            self.lbl_security_question.setText("Password reset successful.")
+        else:
+            self.lbl_security_question.setText("Incorrect answer.")
 
 if __name__ == '__main__':
     app = QApplication([])
