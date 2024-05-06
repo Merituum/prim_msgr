@@ -1,11 +1,13 @@
 # models.py
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, sessionmaker
+
 
 engine = create_engine('mysql+pymysql://root:@localhost/prim_msgr')
 Base = declarative_base()
-
+Base.metadata.create_all(engine)
+Session = sessionmaker(bind=engine)
 class User(Base):
     __tablename__ = 'Users'
 
