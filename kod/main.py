@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
-from PyQt5.QtWidgets import QApplication,QSizePolicy, QWidget,QLineEdit, QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QTextEdit, QLineEdit, QPushButton
+from PyQt5.QtWidgets import QApplication,QSizePolicy,QMessageBox, QWidget,QLineEdit, QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QTextEdit, QLineEdit, QPushButton
 from PyQt5.QtCore import QObject, pyqtSignal
 import qtmodern.styles
 # qtmodern.styles.dark(app)
@@ -292,8 +292,23 @@ class LoginWindow(QWidget):
         new_password = self.txt_new_password.text()
         security_question = self.txt_security_question.text()
         security_answer = self.txt_security_answer.text()
-
+        if not new_username or not new_password or not security_question or not security_answer:
+            msg=QMessageBox()
+            msg.setWindowTitle("Puste pola!")
+            msg.setText("Wszystkie pola muszą być wypełnione!")
+            msg.exec()
+            return
+        
         session = Session()
+        
+        existing = session.query(User).filter_by(Login=new_username).first()
+        
+        if existing:
+            msg=QMessageBox()
+            msg.setWindowTitle("Kradniesz nick!")
+            msg.setText("Taki login już istnieje!")
+            msg.exec()
+            return
         user = User(Login=new_username, Haslo=new_password, PytaniePomocnicze=security_question, OdpowiedzNaPytanie=security_answer)
         session.add(user)
         session.commit()
