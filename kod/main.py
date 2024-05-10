@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
-from PyQt5.QtWidgets import QApplication,QSizePolicy,QMessageBox, QWidget,QLineEdit, QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QTextEdit, QLineEdit, QPushButton
+from PyQt5.QtWidgets import QApplication,QDialog,QDialogButtonBox,QSizePolicy,QMessageBox, QWidget,QLineEdit, QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QTextEdit, QLineEdit, QPushButton
 from PyQt5.QtCore import QObject, pyqtSignal
 import qtmodern.styles
 # qtmodern.styles.dark(app)
@@ -315,6 +315,8 @@ class LoginWindow(QWidget):
         self.close()
         self.open_main_window(user)
         print("User registered successfully!")
+       
+
 class ForgotPassword(QWidget):
     def __init__(self):
         super().__init__()
@@ -343,23 +345,72 @@ class ForgotPassword(QWidget):
 
     def confirm_username(self):
         username = self.txt_username.text()
+        if not username:
+            QMessageBox.warning(self, "Błąd", "Proszę podać login.")
+            return
+       
         session = Session()
         user = session.query(User).filter_by(Login=username).first()
         if user:
             self.lbl_security_question.setText(user.PytaniePomocnicze)
         else:
-            self.lbl_security_question.setText("User not found.")
+            QMessageBox.warning(self, "Błąd", "Nie znaleziono użytkownika.")
 
     def confirm_answer(self):
         username = self.txt_username.text()
         answer = self.txt_security_answer.text()
+        if not answer:
+            QMessageBox.warning(self, "Błąd", "Proszę podać odpowiedź.")
+            return
         session = Session()
         user = session.query(User).filter_by(Login=username).first()
         if user and user.OdpowiedzNaPytanie == answer:
-            self.lbl_security_question.setText("Password reset successful.")
+            # self.lbl_security_question.setText("Password reset successful.")
+            
+            self.reset_password_dialog = ResetPasswordDialog(username)
+            self.reset_password_dialog.exec_()
         else:
             self.lbl_security_question.setText("Incorrect answer.")
+class ResetPasswordDialog(QDialog):
+    def __init__(self, username, parent=None):
+        super(ResetPasswordDialog, self).__init__(parent)
+        self.username = username
+        self.setWindowTitle("Resetowanie hasła")
+        self.lbl_new_password = QLabel("Nowe hasło:")
+        self.txt_new_password = QLineEdit()
+        self.btn_reset_password = QPushButton("Zresetuj hasło")
+        self.btn_cancel = QPushButton("Anuluj")
 
+        layout = QVBoxLayout()
+        layout.addWidget(self.lbl_new_password)
+        layout.addWidget(self.txt_new_password)
+        buttons = QDialogButtonBox()
+        buttons.addButton(self.btn_reset_password, QDialogButtonBox.ActionRole)
+        buttons.addButton(self.btn_cancel, QDialogButtonBox.RejectRole)
+        layout.addWidget(buttons)
+        self.setLayout(layout)
+
+        self.btn_reset_password.clicked.connect(self.reset_password)
+        self.btn_cancel.clicked.connect(self.reject)
+
+    def reset_password(self):
+        new_password = self.txt_new_password.text()
+
+        if not new_password:
+            QMessageBox.warning(self, "Błąd", "Proszę wprowadzić nowe hasło.")
+            return
+
+        
+        Session = sessionmaker(bind=engine)
+        session = Session()
+        user = session.query(User).filter_by(Login=self.username).first()
+        user.Haslo = new_password
+        session.commit()
+        # Tutaj powinieneś zaktualizować hasło użytkownika w bazie danych
+        # Np. user.Haslo = new_password
+        session.commit()
+        QMessageBox.information(self, "Sukces", "Hasło zostało zresetowane pomyślnie.")
+        self.accept()
 if __name__ == '__main__':
     # qtmodern.styles.dark(app)
     app = QApplication([])
