@@ -405,8 +405,12 @@ class ResetPasswordDialog(QDialog):
         session = Session()
         user = session.query(User).filter_by(Login=self.username).first()
         user.Haslo = new_password
+<<<<<<< HEAD
         session.commit()
         
+=======
+      
+>>>>>>> 80fc3096fcf2039eabc2a48a808ec563c539d964
         session.commit()
         QMessageBox.information(self, "Sukces", "Hasło zostało zresetowane pomyślnie.")
         self.accept()
