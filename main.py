@@ -38,21 +38,19 @@ class Message(Base):
 # Inicjalizacja bazy danych
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
-
-class MessengerInterface(QWidget):
-    messages_changed = pyqtSignal()
-
+messages_changed = pyqtSignal()
+class MessengerApp(QWidget):
     def __init__(self, logged_in_user):
         super().__init__()
         self.logged_in_user = logged_in_user
+        self.selected_user = None
         self.init_ui()
-        self.messages_changed.connect(self.load_messages)
 
     def init_ui(self):
+        self.lbl_welcome = QLabel(f"Witamy w prim_msgr, {self.logged_in_user.Login}!")
         self.lista_users = QListWidget()
         self.txt_message = QTextEdit()
         self.txt_input = QLineEdit()
-        self.selected_user = None
 
         main_layout = QHBoxLayout()
 
@@ -62,13 +60,15 @@ class MessengerInterface(QWidget):
         users_layout.addWidget(QLabel("Lista użytkowników"))
         users_layout.addWidget(self.lista_users)
         self.lista_users.setMaximumWidth(150)  # Ustaw maksymalną szerokość listy użytkowników
+        main_layout.addLayout(users_layout)
 
         # Układ dla pola wiadomości
         messages_layout = QVBoxLayout()
-        messages_layout.addWidget(QPushButton("Wyloguj",clicked=self.logout))
+        messages_layout.addWidget(QPushButton("Wyloguj", clicked=self.logout))
         messages_layout.addWidget(QLabel("Wiadomości"))
         messages_layout.addWidget(self.txt_message)
         self.txt_message.setMaximumWidth(400)  # Ustaw maksymalną szerokość pola wiadomości
+        main_layout.addLayout(messages_layout)
 
         # Układ dla pola wpisywania wiadomości
         input_layout = QVBoxLayout()
@@ -79,27 +79,23 @@ class MessengerInterface(QWidget):
         self.txt_input.setMinimumWidth(200)  # Ustaw minimalną szerokość pola do wpisywania wiadomości
         input_layout.addWidget(QPushButton("Wyślij", clicked=self.send_message))
 
-        main_layout.addLayout(users_layout)
-        main_layout.addLayout(messages_layout)
         main_layout.addLayout(input_layout)
 
         self.setLayout(main_layout)
-
-        self.setWindowTitle("Messenger - prim_msgr")
-        self.setGeometry(200, 200, 900, 400)
+        self.setWindowTitle("Dashboard - prim_msgr")
+        self.setGeometry(200, 200, 1600, 800)
 
         # Wczytaj użytkowników z bazy danych i dodaj ich do listy
         self.load_users_from_database()
 
         # Połącz zdarzenie zaznaczenia użytkownika z funkcją obsługi
         self.lista_users.itemClicked.connect(self.select_user)
+
     def logout(self):
-        # self.main_window.close()
         self.close()
         self.login_window = LoginWindow()
         self.login_window.show()
-        # self.main_window=MainWindow()
-        # self.main_window.hide()
+
     def load_users_from_database(self):
         session = Session()
         users = session.query(User).filter(User.Login != self.logged_in_user.Login).all()
@@ -109,7 +105,7 @@ class MessengerInterface(QWidget):
     def select_user(self, item):
         # Zapisz zaznaczonego użytkownika
         self.selected_user = item.text()
-        self.messages_changed.emit()
+        self.load_messages()
 
     def load_messages(self):
         if self.selected_user:
@@ -126,26 +122,18 @@ class MessengerInterface(QWidget):
             print("Proszę wybrać użytkownika, aby zobaczyć wiadomości.")
 
     def send_message(self):
-        # Sprawdź, czy użytkownik został wybrany
         if self.selected_user:
-            # Pobierz treść wiadomości
             message_content = self.txt_input.text()
             if message_content:
                 session = Session()
                 receiver = session.query(User).filter_by(Login=self.selected_user).first()
-
                 if receiver:
                     message = Message(ID_wysylajacego=self.logged_in_user.ID, ID_odbierajacego=receiver.ID, content=message_content)
                     session.add(message)
-
-                    # Wydrukowanie zapytania SQL
-                    print(f"SQL: {session.query(Message).filter_by(ID_wysylajacego=self.logged_in_user.ID, ID_odbierajacego=receiver.ID, content=message_content).statement}")
-
                     session.commit()
                     print(f"Wysłano wiadomość do użytkownika {self.selected_user}: {message_content}")
-                    # Wyczyść pole wpisywania wiadomości
                     self.txt_input.clear()
-                    self.messages_changed.emit()
+                    self.load_messages()
                 else:
                     print("Nie znaleziono odbiorcy.")
             else:
@@ -153,30 +141,51 @@ class MessengerInterface(QWidget):
         else:
             print("Proszę wybrać użytkownika, aby wysłać wiadomość.")
 
-class MainWindow(QWidget):
-    def __init__(self, logged_in_user):
+
+class LoginWindow(QWidget):
+    def __init__(self):
         super().__init__()
-        self.logged_in_user = logged_in_user
         self.init_ui()
-    
+
     def init_ui(self):
-        self.lbl_welcome = QLabel(f"Witamy w prim_msgr, {self.logged_in_user.Login}!")
+        # Tworzenie etykiet, pól tekstowych, przycisków logowania i rejestracji
+        self.lbl_username = QLabel("Login:")
+        self.lbl_password = QLabel("Hasło:")
+        self.txt_username = QLineEdit()
+        self.txt_password = QLineEdit()
+        self.btn_login = QPushButton("Login")
+        self.btn_register = QPushButton("Register")
+        self.btn_forgot_password = QPushButton("Zapomniałeś hasła?")
+
+        # Ustawienie pola hasła na tryb hasła
+        self.txt_password.setEchoMode(QLineEdit.Password)
+
+        # Ustawienie układu dla przycisków
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(self.btn_login)
+        button_layout.addWidget(self.btn_register)
+        button_layout.addWidget(self.btn_forgot_password)
+
+        # Ustawienie układu dla etykiet, pól tekstowych i przycisków
         self.layout = QVBoxLayout()
-        self.layout.addWidget(self.lbl_welcome)
-        # self.layout.addWidget(QPushButton("Wyloguj", clicked=self.logout))
+        self.layout.addWidget(self.lbl_username)
+        self.layout.addWidget(self.txt_username)
+        self.layout.addWidget(self.lbl_password)
+        self.layout.addWidget(self.txt_password)
+        self.layout.addLayout(button_layout)
 
-        # Utworzenie interfejsu Messenger
-        self.messenger_interface = MessengerInterface(self.logged_in_user)
+        # Ustawienie głównego układu okna
+        self.setLayout(self.layout)
 
-        # Ustawienie układu dla głównego okna
-        main_layout = QHBoxLayout()
-        main_layout.addWidget(self.messenger_interface)
-        self.setLayout(main_layout)
+        # Połączenie przycisków z funkcjami obsługującymi logowanie i rejestrację
+        self.btn_login.clicked.connect(self.login)
+        self.btn_register.clicked.connect(self.show_registration_fields)
+        self.btn_forgot_password.clicked.connect(self.show_forgot_password_fields)
 
-        self.setWindowTitle("Dashboard - prim_msgr")
-        self.setGeometry(200, 200, 1600, 800)
+        # Ustawienia okna
+        self.setWindowTitle("Login Window")
+        self.setGeometry(200, 200, 300, 150)
 
-    
 
 class LoginWindow(QWidget):
     def __init__(self):
@@ -239,7 +248,7 @@ class LoginWindow(QWidget):
             print("Zły login lub hasło")
 
     def open_main_window(self, user):
-        self.main_window = MainWindow(user)
+        self.main_window = MessengerApp(user)
         self.main_window.show()
         #PRZEKAZANA REFERENCJA DO OKNA LOGOWANIA
         # self.main_window.login_window=self
