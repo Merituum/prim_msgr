@@ -39,6 +39,7 @@ class Message(Base):
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
 messages_changed = pyqtSignal()
+
 class MessengerApp(QWidget):
     def __init__(self, logged_in_user):
         super().__init__()
@@ -50,7 +51,7 @@ class MessengerApp(QWidget):
         self.lbl_welcome = QLabel(f"Witamy w prim_msgr, {self.logged_in_user.Login}!")
         self.lista_users = QListWidget()
         self.txt_message = QTextEdit()
-        self.txt_input = QLineEdit()
+        self.txt_input = QTextEdit()
 
         main_layout = QHBoxLayout()
 
@@ -75,8 +76,7 @@ class MessengerApp(QWidget):
         input_layout.addWidget(self.txt_input)
         self.txt_input.setPlaceholderText("Wpisz wiadomość...")
         self.txt_input.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.txt_input.setMinimumHeight(720)  # Ustaw maksymalną szerokość pola do wpisywania wiadomości
-        self.txt_input.setMinimumWidth(200)  # Ustaw minimalną szerokość pola do wpisywania wiadomości
+        self.txt_input.setMinimumHeight(710)  # Ustaw minimalną wysokość pola do wpisywania wiadomości
         input_layout.addWidget(QPushButton("Wyślij", clicked=self.send_message))
 
         main_layout.addLayout(input_layout)
@@ -123,7 +123,7 @@ class MessengerApp(QWidget):
 
     def send_message(self):
         if self.selected_user:
-            message_content = self.txt_input.text()
+            message_content = self.txt_input.toPlainText()
             if message_content:
                 session = Session()
                 receiver = session.query(User).filter_by(Login=self.selected_user).first()
