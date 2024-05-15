@@ -2,7 +2,7 @@ from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from PyQt5.QtWidgets import QApplication,QDialog,QDialogButtonBox,QSizePolicy,QMessageBox, QWidget,QLineEdit, QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QTextEdit, QLineEdit, QPushButton
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtCore import QObject, Qt, pyqtSignal
 import qtmodern.styles
 # qtmodern.styles.dark(app)
 
@@ -52,6 +52,8 @@ class MessengerApp(QWidget):
         self.lista_users = QListWidget()
         self.txt_message = QTextEdit()
         self.txt_input = QTextEdit()
+        # self.btn_change_password = QPushButton("Zmień hasło")
+        # self.btn_change_password.clicked.connect(self.open_change_password_dialog)
 
         main_layout = QHBoxLayout()
 
@@ -66,6 +68,8 @@ class MessengerApp(QWidget):
         # Układ dla pola wiadomości
         messages_layout = QVBoxLayout()
         messages_layout.addWidget(QPushButton("Wyloguj", clicked=self.logout))
+        # messages_layout.addWidget(self.btn_change_password)
+        messages_layout.addWidget(QPushButton("Zmień hasło", clicked=self.open_change_password_dialog))
         messages_layout.addWidget(QLabel("Wiadomości"))
         messages_layout.addWidget(self.txt_message)
         self.txt_message.setMaximumWidth(400)  # Ustaw maksymalną szerokość pola wiadomości
@@ -90,6 +94,12 @@ class MessengerApp(QWidget):
 
         # Połącz zdarzenie zaznaczenia użytkownika z funkcją obsługi
         self.lista_users.itemClicked.connect(self.select_user)
+
+    def open_change_password_dialog(self):
+        print("COS SIE DZIEJE")
+        self.change_password_dialog = ChangePasswordDialog(self.logged_in_user)
+        self.change_password_dialog.exec_()
+
 
     def logout(self):
         self.close()
@@ -140,7 +150,53 @@ class MessengerApp(QWidget):
                 print("Nie można wysłać pustej wiadomości.")
         else:
             print("Proszę wybrać użytkownika, aby wysłać wiadomość.")
+class ChangePasswordDialog(QDialog):
+    def __init__(self, user):
+        super().__init__()
+        self.user= user
+        self.init_ui()
+    def init_ui(self):
+        self.lbl_old_password = QLabel("Stare hasło:")
+        self.txt_old_password = QLineEdit()
+        self.lbl_new_password = QLabel("Nowe hasło:")
+        self.txt_new_password = QLineEdit()
+        self.btn_confirm = QPushButton("Zmień hasło")
 
+        layout = QVBoxLayout()
+        layout.addWidget(self.lbl_old_password)
+        layout.addWidget(self.txt_old_password)
+        layout.addWidget(self.lbl_new_password)
+        layout.addWidget(self.txt_new_password)
+        layout.addWidget(self.btn_confirm)
+        self.setLayout(layout)
+
+        self.btn_confirm.clicked.connect(self.change_password)
+    
+    def change_password(self):
+        old_password = self.txt_old_password.text()
+        new_password = self.txt_new_password.text()
+
+        if not old_password or not new_password:
+            QMessageBox.warning(self, "Błąd", "Proszę podać stare i nowe hasło.")
+            return
+
+        if old_password != self.user.Haslo:
+            QMessageBox.warning(self, "Błąd", "Stare hasło jest nieprawidłowe.")
+            return
+
+        # self.user.Haslo = new_password
+        # session = Session()
+        # session.add(self.user)
+        # session.commit()
+        # QMessageBox.information(self, "Sukces", "Hasło zostało zmienione pomyślnie.")
+        # self.accept()
+        Session = sessionmaker(bind=engine)
+        session = Session()
+        user = session.query(User).filter_by(Login=self.user.Login).first()
+        user.Haslo = new_password
+        session.commit()
+        QMessageBox.information(self, "Sukces", "Hasło zostało zmienione pomyślnie.")
+        self.accept()
 
 class LoginWindow(QWidget):
     def __init__(self):
