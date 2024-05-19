@@ -96,7 +96,7 @@ class MessengerApp(QWidget):
         self.lista_users.itemClicked.connect(self.select_user)
 
     def open_change_password_dialog(self):
-        print("COS SIE DZIEJE")
+        # print("COS SIE DZIEJE")
         self.change_password_dialog = ChangePasswordDialog(self.logged_in_user)
         self.change_password_dialog.exec_()
 
@@ -167,6 +167,8 @@ class ChangePasswordDialog(QDialog):
         layout.addWidget(self.txt_old_password)
         layout.addWidget(self.lbl_new_password)
         layout.addWidget(self.txt_new_password)
+        self.txt_new_password.setEchoMode(QLineEdit.Password)
+        self.txt_old_password.setEchoMode(QLineEdit.Password)
         layout.addWidget(self.btn_confirm)
         self.setLayout(layout)
 
@@ -175,6 +177,7 @@ class ChangePasswordDialog(QDialog):
     def change_password(self):
         old_password = self.txt_old_password.text()
         new_password = self.txt_new_password.text()
+        
 
         if not old_password or not new_password:
             QMessageBox.warning(self, "Błąd", "Proszę podać stare i nowe hasło.")
@@ -401,6 +404,8 @@ class ForgotPassword(QWidget):
         self.layout.addWidget(self.btn_confirm)
         self.layout.addWidget(self.lbl_security_question)
         self.layout.addWidget(self.txt_security_answer)
+        # self.txt_password.setEchoMode(QLineEdit.Password)
+        self.txt_security_answer.setEchoMode(QLineEdit.Password)
         self.layout.addWidget(self.btn_confirm_answer)
 
         self.setLayout(self.layout)
@@ -443,6 +448,7 @@ class ResetPasswordDialog(QDialog):
         self.setWindowTitle("Resetowanie hasła")
         self.lbl_new_password = QLabel("Nowe hasło:")
         self.txt_new_password = QLineEdit()
+        self.txt_new_password.setEchoMode(QLineEdit.Password)
         self.btn_reset_password = QPushButton("Zresetuj hasło")
         self.btn_cancel = QPushButton("Anuluj")
 
