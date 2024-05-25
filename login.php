@@ -29,52 +29,9 @@
     </div>
 
     <?php
-    function register() {
-        $login_register = $_POST["login"];
-        $password_register = $_POST["password"];
-        // Assuming you have additional fields for registration like "question" and "answer"
-        $question_question = $_POST["question"]; 
-        $question_answer = $_POST["answer"];
-        
-        $db_name = "localhost";
-        $db_user = "root";
-        $db_pass = "";    
-        $db_name_db = "prim_msgr";
-        
-        $conn = new mysqli($db_name, $db_user, $db_pass, $db_name_db);
-        if ($conn->connect_error) {
-            die("Nie można połączyć się z bazą danych: " . $conn->connect_error);
-        }
-
-        // Zabezpiecz dane przed SQL Injection
-        $login_register = mysqli_real_escape_string($conn, $login_register);
-        $password_register = mysqli_real_escape_string($conn, $password_register);
-        $question = mysqli_real_escape_string($conn, $question_question);
-        $answer = mysqli_real_escape_string($conn, $question_answer);
-
-        // Sprawdzenie czy użytkownik o podanym loginie już istnieje
-        $query_check = "SELECT * FROM Users WHERE Login = '$login_register'";
-        $result_check = mysqli_query($conn, $query_check);
-        if ($result_check && mysqli_num_rows($result_check) > 0) {
-            echo "Taki użytkownik już istnieje";
-        }
-        else {
-            $query_register = "INSERT INTO Users (Login, Haslo, PytaniePomocnicze, OdpowiedzNaPytanie) 
-                    VALUES ('$login_register', '$password_register', '$question', '$answer')";
-            $result_register = mysqli_query($conn, $query_register);
-            if ($result_register) {
-                session_start();
-                $_SESSION['login'] = $login_register;
-                header("Location: index.php");
-                exit();
-            }
-            else {
-                echo "Błąd!";
-            }
-        }
-        mysqli_close($conn);
+    function register(){
+        header("Location: register.php");
     }
-
     function login() {        
         $login_username = $_POST["login"];
         $password_username = $_POST["password"];
@@ -98,6 +55,8 @@
 
         if ($result_check && mysqli_num_rows($result_check) > 0) {
             echo "Zalogowano pomyślnie.";
+            $_SESSION['login']=$login_username;
+            header("Location: index.php");
         } else {
             echo "Nieprawidłowy login lub hasło.";
         }
